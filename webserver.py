@@ -21,19 +21,27 @@ class WebServer(tornado.web.Application):
 class MainHandler(tornado.web.RequestHandler):
     def initialize(self, timesleep):
         self.timesleep = timesleep
+        self.body = None
     
     async def prepare(self):
         self.uuid = str(uuid.uuid4())
         print(f"Got request {self.uuid}")
-        print(f"Processing request...")
+        print("Request header:")
+        print(self.request.headers)
+        print()
         self.set_header("x-request-id", self.uuid)
         await asyncio.sleep(self.timesleep)
+        if self.request.body:
+            if self.request.headers.get("content-type") == "application/json":
+                self.body = self.request.body.decode('utf-8')
     
     async def get(self):
         self.write("GET: Hello world")
     
     async def post(self):
         self.write("POST: Hello world")
+        print("Raw body", self.request.body)
+        print("Decoded body", self.body)
     
     def on_finish(self) -> None:
         print(f"request {self.uuid} processed.")
@@ -43,7 +51,7 @@ class MainHandler(tornado.web.RequestHandler):
 
 def build_app():
     handlers = [
-        (r"/", MainHandler, dict(timesleep=1))
+        (r"/", MainHandler, dict(timesleep=0.1))
         ]
     
     app = WebServer(handlers=handlers, debug=True)
